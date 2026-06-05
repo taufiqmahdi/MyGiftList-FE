@@ -22,26 +22,71 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
+// Sync token to a cookie so Next.js middleware can read it server-side
+function setTokenCookie(value: string | null) {
+  if (value) {
+    document.cookie = `mgl_token=${value}; path=/; SameSite=Lax`;
+  } else {
+    document.cookie = 'mgl_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+  }
+}
+
+/**
+ * Safely extract the access token from whatever shape the API returns.
+ * Common Laravel patterns:
+ *   { access_token, user }           — Sanctum default
+ *   { token, user }                  — custom
+ *   { data: { access_token, user }}  — wrapped
+ */
+function extractToken(raw: unknown): string {
+  if (!raw || typeof raw !== 'object') return '';
+  const r = raw as Record<string, unknown>;
+
+  // Unwrap { data: { ... } } if present
+  const payload =
+    r.data && typeof r.data === 'object'
+      ? (r.data as Record<string, unknown>)
+      : r;
+
+  return (
+    (payload.access_token as string) ??
+    (payload.token as string) ??
+    ''
+  );
+}
+
+function extractUser(raw: unknown): User | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const r = raw as Record<string, unknown>;
+
+  const payload =
+    r.data && typeof r.data === 'object'
+      ? (r.data as Record<string, unknown>)
+      : r;
+
+  return (payload.user as User) ?? null;
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Re-hydrate from localStorage on mount
   useEffect(() => {
     const storedToken = localStorage.getItem('access_token');
     if (storedToken) {
-      // Ensure the SSR cookie is in sync
       document.cookie = `mgl_token=${storedToken}; path=/; SameSite=Lax`;
       setToken(storedToken);
       authApi
         .me()
         .then((data) => {
-          // API might return { user: {...} } or the user object directly
-          const u = (data as unknown as { user: User }).user ?? (data as User);
+          const u = extractUser(data) ?? (data as unknown as User);
           setUser(u);
         })
         .catch(() => {
           localStorage.removeItem('access_token');
+          setTokenCookie(null);
           setToken(null);
         })
         .finally(() => setIsLoading(false));
@@ -50,21 +95,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  // Sync token to a cookie so middleware can read it server-side
-  function setTokenCookie(value: string | null) {
-    if (value) {
-      document.cookie = `mgl_token=${value}; path=/; SameSite=Lax`;
-    } else {
-      document.cookie = 'mgl_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
-    }
-  }
-
   const hydrateFromResponse = useCallback((res: LoginResponse) => {
-    const accessToken = res.access_token ?? res.token ?? '';
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[Auth] login response:', res);
+    }
+
+    const accessToken = extractToken(res);
+
+    if (!accessToken) {
+      console.error(
+        '[Auth] Token not found in response. Keys received:',
+        Object.keys(res as object)
+      );
+      return;
+    }
+
+    const resolvedUser = extractUser(res);
+
     localStorage.setItem('access_token', accessToken);
     setTokenCookie(accessToken);
     setToken(accessToken);
-    setUser(res.user);
+    setUser(resolvedUser);
   }, []);
 
   const login = useCallback(
