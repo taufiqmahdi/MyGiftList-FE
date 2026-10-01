@@ -63,6 +63,10 @@ export default function LoginPage() {
         <h1 className="auth-title">Welcome back</h1>
         <p className="auth-subtitle">Log in to manage your registries</p>
 
+        <div className="alert alert-success" style={{ marginBottom: '20px' }}>
+          This is a demo. Log in with any email address and any password to explore the sample account.
+        </div>
+
         {serverError && (
           <div className="alert alert-error" style={{ marginBottom: '20px' }}>
             {serverError}

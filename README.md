@@ -2,6 +2,8 @@
 
 A gift registry web application built with **Next.js 15** (App Router) and **TypeScript**. Users can create and manage gift registries for any occasion, share a public link with guests, and track which gifts have been booked — all without requiring guests to register.
 
+> **Demo branch.** This version runs without the Laravel backend. `lib/api.ts` is served by an in-browser store (`lib/demo/`) seeded with a sample account, three registries, items and bookings, and saved in `localStorage`. Log in with **any well-formed email and any password**. Each visitor gets their own sandbox, which they can restore with the **Reset demo data** button in the banner. Booking confirmations show the cancellation link directly, since no emails are sent.
+
 ---
 
 ## Tech Stack

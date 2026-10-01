@@ -143,8 +143,11 @@ function BookingModal({ item, slug, onClose, onBooked }: {
         }}>
           <p style={{ fontSize: '0.82rem', fontWeight: 600, marginBottom: 4 }}>Need to cancel?</p>
           <p style={{ fontSize: '0.82rem', color: 'var(--muted)', lineHeight: 1.6, margin: 0 }}>
-            A cancellation link has been sent to <strong>{form.booker_email}</strong>. Use that link
-            if your plans change — no account needed.
+            Normally a cancellation link is emailed to <strong>{form.booker_email}</strong>. In this demo
+            no email is sent, so here it is:{' '}
+            {bookingId && (
+              <Link href={`/bookings/cancel/${bookingId}`} target="_blank">Cancel this booking ↗</Link>
+            )}
           </p>
         </div>
 

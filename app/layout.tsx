@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { ToastProvider } from '@/contexts/ToastContext';
+import DemoBanner from '@/components/DemoBanner';
 
 export const metadata: Metadata = {
   title: 'MyGiftList — Create & Share Your Gift Registry',
@@ -13,6 +14,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <body>
+        <DemoBanner />
         <AuthProvider>
           <ToastProvider>
             {children}
